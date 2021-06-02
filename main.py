@@ -1,4 +1,5 @@
-import json
+import multiprocessing
+import copy
 
 x = {
   "machine": {
@@ -44,20 +45,29 @@ x = {
 }
 
 
-class Coffee_Machine():
+# Coffee Machine
+class Coffee_Machine(object):
+
+    __shared_state = {}
 
     # Initializing coffee machine
     def __init__(self, n, items):
-
+        self.__dict___ = self.__shared_state
         # Number of outlets (n)
-        self.n = n
+        self.outlets = []
+        for i in range(n):
+            outlet = (i+1)
+            # outlet = OutLet(items)
+            print('Outlet {} created'.format(i+1))
+            self.outlets.append(outlet)
+
         # Ingredient quantity (item_quantity)
         self.item_quantity = items
         # Assuming that the max quantity is the inital quantity which is given
-        self.max_item_quantity = items
+        self.max_item_quantity = copy.copy(items)
 
     # To serve beverage
-    def serve_beverage(self, beverage):
+    def serve_beverage(self, beverage, beverage_name):
         '''
         param:
             beverage: Dictionary with ingredients and quantities
@@ -68,12 +78,12 @@ class Coffee_Machine():
         is_available = True
         for item in item_dict.keys():
             if new_item_quantity.get(item, None) is None:
-                print('{} cannot be prepared because {} is not available'.format(beverage, item))
+                print('{} cannot be prepared because {} is not available'.format(beverage_name, item))
                 is_available = False
                 break
 
             elif new_item_quantity.get(item) < item_dict.get(item):
-                print('{} cannot be prepared because {} is not sufficient'.format(beverage, item))
+                print('{} cannot be prepared because {} is not sufficient'.format(beverage_name, item))
                 is_available = False
                 break
             else:
@@ -81,9 +91,27 @@ class Coffee_Machine():
 
         if is_available:
             self.item_quantity = new_item_quantity
-            print('{} is prepared'.format(beverage))
+            print('{} is prepared'.format(beverage_name))
+            print('----------------------------------')
+            print('Remaining ingredients:')
             # Display ingredient quantity after serving beverage
             self.indicate()
+            print('----------------------------------')
+
+    # Serve with outlets
+    def serve(self, beverage, beverage_name):
+
+        outlet = None
+        # Check for any available outlets
+        if len(self.outlets) > 0:
+            outlet = self.outlets.pop()
+            # Serve beverage with that outlet
+            self.serve_beverage(beverage, beverage_name)
+        else:
+            print('No coffee outlet is available to serve beverage')
+            return
+
+        self.outlets.append(outlet)
 
     # To indicate quantity of available ingredients
     def indicate(self):
@@ -102,7 +130,7 @@ class Coffee_Machine():
                 print('{}: {}'.format(item, self.item_quantity[item]))
 
         if len(refill_ingredients) > 0:
-            print('Refilling Ingredients: {}'.format(refill_ingredients))
+            print('Refilling Ingredients: {}'.format(','.join(refill_ingredients)))
             self.refill(refill_ingredients)
 
     # To refill ingredients
@@ -114,7 +142,7 @@ class Coffee_Machine():
         '''
         # To refill specific ingredients
         if ingredients is not None:
-            assert isinstance(ingredients, []), "Ingredients not provided in List"
+            assert isinstance(ingredients, type([])), "Ingredients not provided in List"
             for ingredient in ingredients:
                 # Refill ingredient with amount given
                 if amount is not None:
@@ -123,7 +151,8 @@ class Coffee_Machine():
                 # Refill ingredient with the maximum amount
                 else:
                     self.item_quantity[ingredient] = self.max_item_quantity.get(ingredient)
-                    print('{} refilled to max amount'.format(ingredient))
+                    print('{}: {}| Refilled to max amount'.format(ingredient, self.item_quantity[ingredient]))
+
             return
 
         # If no ingredient is given refilling all ingredients
@@ -131,15 +160,38 @@ class Coffee_Machine():
         print('All ingredients refilled to max amount')
 
 
-n = x['machine']['outlets']['count_n']
-items = x['machine']['total_items_quantity']
+# Coffee Machine Outlet
+class OutLet(Coffee_Machine):
 
-m = Coffee_Machine(n, items)
+    def __init__(self, item_quantity):
+        # Ingredient quantity (item_quantity)
+        self.item_quantity = items
+        # Assuming that the max quantity is the inital quantity which is given
+        self.max_item_quantity = items
+    pass
 
-m.indicate()
-# print(m.item_quantity)
-# items_available, items_not_available = m.get_drink(x['machine']['beverages'])
-#
-# m.print_drinks(items_available, items_not_available)
-#
-# print(m.item_quantity)
+
+if __name__ == '__main__':
+    n = x['machine']['outlets']['count_n']
+    items = x['machine']['total_items_quantity']
+    beverages = x['machine']['beverages']
+    m = Coffee_Machine(n, items)
+    # m.serve_beverage(beverages['hot_coffee'], 'hot_coffee')
+    # m.serve_beverage(beverages['hot_tea'], 'hot_tea')
+    p1 = multiprocessing.Process(target=m.serve, args=(beverages['hot_coffee'], 'hot_coffee'))
+    p2 = multiprocessing.Process(target=m.serve, args=(beverages['hot_tea'], 'hot_tea'))
+    p3 = multiprocessing.Process(target=m.serve, args=(beverages['green_tea'], 'green_tea'))
+    # starting process 1
+    p1.start()
+    # starting process 2
+    p2.start()
+    # starting process 3
+    p3.start()
+    # wait until process 1 is finished
+    p1.join()
+    # wait until process 2 is finished
+    p2.join()
+    # wait until process 3 is finished
+    p3.join()
+    # both processes finished
+    print("Done!")
