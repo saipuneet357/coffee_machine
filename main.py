@@ -1,7 +1,6 @@
 import json
 
-
-x ={
+x = {
   "machine": {
     "outlets": {
       "count_n": 3
@@ -45,67 +44,102 @@ x ={
 }
 
 
+class Coffee_Machine():
 
-
-
-
-class CM():
-
+    # Initializing coffee machine
     def __init__(self, n, items):
 
+        # Number of outlets (n)
         self.n = n
+        # Ingredient quantity (item_quantity)
         self.item_quantity = items
+        # Assuming that the max quantity is the inital quantity which is given
+        self.max_item_quantity = items
 
-    def get_drink(self, beverages):
+    # To serve beverage
+    def serve_beverage(self, beverage):
+        '''
+        param:
+            beverage: Dictionary with ingredients and quantities
 
-        items_available = []
-        items_not_available = []
-        for beverage in beverages:
-            item_dict = beverages[beverage]
-            new_item_quantity = self.item_quantity
-            is_available = True
-            for item in item_dict.keys():
-                if new_item_quantity.get(item, None) is None:
-                    print('{} is not available'.format(item))
-                    items_not_available.append('{} cannot be prepared because {} is not available'.format(beverage, item))
-                    is_available = False
-                    break
-                elif new_item_quantity.get(item) < item_dict.get(item):
-                    print('{} is not sufficient'.format(item))
-                    items_not_available.append('{} cannot be prepared because {} is not sufficient'.format(beverage, item))
-                    is_available = False
-                    break
+        '''
+        item_dict = beverage
+        new_item_quantity = self.item_quantity
+        is_available = True
+        for item in item_dict.keys():
+            if new_item_quantity.get(item, None) is None:
+                print('{} cannot be prepared because {} is not available'.format(beverage, item))
+                is_available = False
+                break
+
+            elif new_item_quantity.get(item) < item_dict.get(item):
+                print('{} cannot be prepared because {} is not sufficient'.format(beverage, item))
+                is_available = False
+                break
+            else:
+                new_item_quantity[item] -= item_dict.get(item)
+
+        if is_available:
+            self.item_quantity = new_item_quantity
+            print('{} is prepared'.format(beverage))
+            # Display ingredient quantity after serving beverage
+            self.indicate()
+
+    # To indicate quantity of available ingredients
+    def indicate(self):
+        '''
+        param:
+            No parameters required
+
+        '''
+        refill_ingredients = []
+        for item in self.item_quantity.keys():
+            # Checking if quantity is less than 20% of the maximum amount
+            if self.item_quantity.get(item) < 0.2*self.max_item_quantity.get(item):
+                refill_ingredients.append(item)
+                print('{}: {} [ALERT] Low quantity'.format(item, self.item_quantity[item]))
+            else:
+                print('{}: {}'.format(item, self.item_quantity[item]))
+
+        if len(refill_ingredients) > 0:
+            print('Refilling Ingredients: {}'.format(refill_ingredients))
+            self.refill(refill_ingredients)
+
+    # To refill ingredients
+    def refill(self, ingredients=None, amount=None):
+        '''
+        param:
+            ingredients: list of ingredient names to be refilled
+
+        '''
+        # To refill specific ingredients
+        if ingredients is not None:
+            assert isinstance(ingredients, []), "Ingredients not provided in List"
+            for ingredient in ingredients:
+                # Refill ingredient with amount given
+                if amount is not None:
+                    self.item_quantity[ingredient] = float(amount)
+                    print('{} refilled to {}'.format(ingredient, str(amount)))
+                # Refill ingredient with the maximum amount
                 else:
-                    new_item_quantity[item] -= item_dict.get(item)
-                    continue
+                    self.item_quantity[ingredient] = self.max_item_quantity.get(ingredient)
+                    print('{} refilled to max amount'.format(ingredient))
+            return
 
-            if is_available:
-                    self.item_quantity = new_item_quantity
-                    items_available.append('{} is prepared'.format(beverage))
+        # If no ingredient is given refilling all ingredients
+        self.item_quantity = self.max_item_quantity
+        print('All ingredients refilled to max amount')
 
-        return items_available, items_not_available
-
-    def print_drinks(self, items_available, items_not_available):
-
-        for items in items_available:
-            print(items)
-        for items in items_not_available:
-            print(items)
-
-
-class CM_OutLet(CM):
-
-
-
-# l = json.loads(x)
 
 n = x['machine']['outlets']['count_n']
 items = x['machine']['total_items_quantity']
 
-m = CM(n, items)
-print(m.item_quantity)
-items_available, items_not_available = m.get_drink(x['machine']['beverages'])
+m = Coffee_Machine(n, items)
 
-m.print_drinks(items_available, items_not_available)
-
-print(m.item_quantity)
+m.indicate()
+# print(m.item_quantity)
+# items_available, items_not_available = m.get_drink(x['machine']['beverages'])
+#
+# m.print_drinks(items_available, items_not_available)
+#
+# print(m.item_quantity)
