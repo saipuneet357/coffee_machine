@@ -45,20 +45,64 @@ x = {
 }
 
 
+
+# Beverage Object
+class Beverage(object):
+
+    def __init__(self, beverage_name):
+        self.ingredients = {}
+        self.beverage_name = beverage_name
+
+    def add_ingredient(self, ingredient, quantity):
+
+        if self.ingredients.get(ingredient, None) is not None:
+            print('{} already exist'.format(ingredient))
+            return
+
+        self.ingredients[ingredient] = quantity
+        print('{} added to beverage {}'.format(ingredient, self.beverage_name))
+
+
+    def remove_ingredient(self, ingredient):
+
+        if self.ingredients.get(ingredient, None) is None:
+            print('{} does not exist'.format(ingredient))
+            return
+
+        del self.ingredients[ingredient]
+        print('{} removed from beverage {}'.format(ingredient, self.beverage_name))
+
+
+    def update_ingredient(self, ingredient, quantity, increase=True):
+
+        if self.ingredients.get(ingredient, None) is None:
+            print('{} does not exist'.format(ingredient))
+            return
+
+        if not increase:
+            quantity *= -1
+
+        self.ingredients[ingredient] += quantity
+        print('Quantity of {} updated by {}'.format(ingredient, quantity))
+
+
+    def get_ingredients(self):
+
+        print('Ingredients for {}: '.format(self.beverage_name))
+        for ingredient in self.ingredients.keys():
+            print('{}: {}'.format(ingredient, self.ingredients[ingredient]))
+
+
 # Coffee Machine
 class Coffee_Machine(object):
 
-    __shared_state = {}
-
     # Initializing coffee machine
     def __init__(self, n, items):
-        self.__dict___ = self.__shared_state
         # Number of outlets (n)
         self.outlets = []
         for i in range(n):
             outlet = (i+1)
-            # outlet = OutLet(items)
-            print('Outlet {} created'.format(i+1))
+            print('Coffee outlet {} created'.format(i+1))
             self.outlets.append(outlet)
 
         # Ingredient quantity (item_quantity)
@@ -71,6 +115,7 @@ class Coffee_Machine(object):
         '''
         param:
             beverage: Dictionary with ingredients and quantities
+            beverage_name: Beverage Name string
 
         '''
         item_dict = beverage
@@ -100,6 +145,12 @@ class Coffee_Machine(object):
 
     # Serve with outlets
     def serve(self, beverage, beverage_name):
+        '''
+        param:
+            beverage: Dictionary with ingredients and quantities
+            beverage_name: Beverage Name string
+
+        '''
 
         outlet = None
         # Check for any available outlets
@@ -138,6 +189,7 @@ class Coffee_Machine(object):
         '''
         param:
             ingredients: list of ingredient names to be refilled
+            amount: amount of ingredient to be refilled
 
         '''
         # To refill specific ingredients
@@ -160,38 +212,38 @@ class Coffee_Machine(object):
         print('All ingredients refilled to max amount')
 
 
-# Coffee Machine Outlet
-class OutLet(Coffee_Machine):
-
-    def __init__(self, item_quantity):
-        # Ingredient quantity (item_quantity)
-        self.item_quantity = items
-        # Assuming that the max quantity is the inital quantity which is given
-        self.max_item_quantity = items
-    pass
-
-
 if __name__ == '__main__':
     n = x['machine']['outlets']['count_n']
     items = x['machine']['total_items_quantity']
     beverages = x['machine']['beverages']
+    beverage_list = []
+    for beverage in beverages.keys():
+        obj = Beverage(beverage)
+        beverage_list.append(obj)
+        for ingredient in beverages[beverage].keys():
+            obj.add_ingredient(ingredient, beverages[beverage][ingredient])
+
     m = Coffee_Machine(n, items)
-    # m.serve_beverage(beverages['hot_coffee'], 'hot_coffee')
-    # m.serve_beverage(beverages['hot_tea'], 'hot_tea')
-    p1 = multiprocessing.Process(target=m.serve, args=(beverages['hot_coffee'], 'hot_coffee'))
-    p2 = multiprocessing.Process(target=m.serve, args=(beverages['hot_tea'], 'hot_tea'))
-    p3 = multiprocessing.Process(target=m.serve, args=(beverages['green_tea'], 'green_tea'))
-    # starting process 1
-    p1.start()
-    # starting process 2
-    p2.start()
-    # starting process 3
-    p3.start()
-    # wait until process 1 is finished
-    p1.join()
-    # wait until process 2 is finished
-    p2.join()
-    # wait until process 3 is finished
-    p3.join()
-    # both processes finished
+    # This part should be ran in parallel for proper testing
+    for beverage in beverage_list:
+        # m.serve(beverage.ingredients, beverage.beverage_name)
+
+        # m.serve_beverage(beverages.ingredients, beverage.beverage_name)
+        # m.serve_beverage(beverages.ingredients, beverage.beverage_name)
+        p1 = multiprocessing.Process(target=m.serve, args=(beverage.ingredients, beverage.beverage_name))
+        p2 = multiprocessing.Process(target=m.serve, args=(beverage.ingredients, beverage.beverage_name))
+        p3 = multiprocessing.Process(target=m.serve, args=(beverage.ingredients, beverage.beverage_name))
+        # starting process 1
+        p1.start()
+        # starting process 2
+        p2.start()
+        # starting process 3
+        p3.start()
+        # wait until process 1 is finished
+        p1.join()
+        # wait until process 2 is finished
+        p2.join()
+        # wait until process 3 is finished
+        p3.join()
+        # both processes finished
     print("Done!")
