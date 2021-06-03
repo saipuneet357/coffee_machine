@@ -1,6 +1,8 @@
 import multiprocessing
 import copy
+from ctypes import c_char_p
 
+# Sample Data
 x = {
   "machine": {
     "outlets": {
@@ -49,12 +51,19 @@ x = {
 # Beverage Object
 class Beverage(object):
 
+    # Initializing Beverage
     def __init__(self, beverage_name):
         self.ingredients = {}
         self.beverage_name = beverage_name
 
+    # To add ingredients to make beverage
     def add_ingredient(self, ingredient, quantity):
+        '''
+        param:
+            ingredient: ingredient name (string)
+            quantity: quantity (numeric)
 
+        '''
         if self.ingredients.get(ingredient, None) is not None:
             print('{} already exist'.format(ingredient))
             return
@@ -62,9 +71,13 @@ class Beverage(object):
         self.ingredients[ingredient] = quantity
         print('{} added to beverage {}'.format(ingredient, self.beverage_name))
 
-
+    # To remove ingredients
     def remove_ingredient(self, ingredient):
+        '''
+        param:
+            ingredient: ingredient name (string)
 
+        '''
         if self.ingredients.get(ingredient, None) is None:
             print('{} does not exist'.format(ingredient))
             return
@@ -72,21 +85,36 @@ class Beverage(object):
         del self.ingredients[ingredient]
         print('{} removed from beverage {}'.format(ingredient, self.beverage_name))
 
-
+    # To update quantity of ingredients required
     def update_ingredient(self, ingredient, quantity, increase=True):
+        '''
+        param:
+            ingredient: ingredient name (string)
+            quantity: quantity (numeric)
+            increase(optional): to increase or decrease quantity (boolean)
 
+        '''
         if self.ingredients.get(ingredient, None) is None:
             print('{} does not exist'.format(ingredient))
             return
 
         if not increase:
             quantity *= -1
+            if self.ingredients[ingredient] + quantity < 0:
+                print('Updated quantity is below zero so updating the quantity to 0')
+                self.ingredients[ingredient] = 0
+                print('Quantity of {} updated to 0'.format(ingredient))
+                return
 
         self.ingredients[ingredient] += quantity
         print('Quantity of {} updated by {}'.format(ingredient, quantity))
 
 
     def get_ingredients(self):
+        '''
+        param:
+            No parameters required
+        '''
 
         print('Ingredients for {}: '.format(self.beverage_name))
         for ingredient in self.ingredients.keys():
@@ -151,7 +179,6 @@ class Coffee_Machine(object):
             beverage_name: Beverage Name string
 
         '''
-
         outlet = None
         # Check for any available outlets
         if len(self.outlets) > 0:
@@ -182,28 +209,29 @@ class Coffee_Machine(object):
 
         if len(refill_ingredients) > 0:
             print('Refilling Ingredients: {}'.format(','.join(refill_ingredients)))
-            self.refill(refill_ingredients)
+            for ingredient in refill_ingredients:
+                self.refill(ingredient)
 
     # To refill ingredients
-    def refill(self, ingredients=None, amount=None):
+    def refill(self, ingredient=None, amount=None):
         '''
         param:
-            ingredients: list of ingredient names to be refilled
+            ingredients: Ingredient to be refilled
             amount: amount of ingredient to be refilled
 
         '''
         # To refill specific ingredients
-        if ingredients is not None:
-            assert isinstance(ingredients, type([])), "Ingredients not provided in List"
-            for ingredient in ingredients:
-                # Refill ingredient with amount given
-                if amount is not None:
-                    self.item_quantity[ingredient] = float(amount)
-                    print('{} refilled to {}'.format(ingredient, str(amount)))
-                # Refill ingredient with the maximum amount
-                else:
-                    self.item_quantity[ingredient] = self.max_item_quantity.get(ingredient)
-                    print('{}: {}| Refilled to max amount'.format(ingredient, self.item_quantity[ingredient]))
+        if ingredient is not None:
+
+            # Refill ingredient with amount given
+            if amount is not None:
+                self.item_quantity[ingredient] = float(amount)
+                print('{} refilled to {}'.format(ingredient, str(amount)))
+
+            # Refill ingredient with the maximum amount
+            else:
+                self.item_quantity[ingredient] = self.max_item_quantity.get(ingredient)
+                print('{}: {}| Refilled to max amount'.format(ingredient, self.item_quantity[ingredient]))
 
             return
 
@@ -217,33 +245,75 @@ if __name__ == '__main__':
     items = x['machine']['total_items_quantity']
     beverages = x['machine']['beverages']
     beverage_list = []
+
+    # Beverage test cases
     for beverage in beverages.keys():
+
+        # Creating new beverage
         obj = Beverage(beverage)
         beverage_list.append(obj)
+
         for ingredient in beverages[beverage].keys():
+
+            # Adding ingredient to beverage
             obj.add_ingredient(ingredient, beverages[beverage][ingredient])
 
-    m = Coffee_Machine(n, items)
-    # This part should be ran in parallel for proper testing
-    for beverage in beverage_list:
-        # m.serve(beverage.ingredients, beverage.beverage_name)
+            # Uncomment below to remove ingredient from beverage
+            # obj.remove_ingredient(ingredient)
 
-        # m.serve_beverage(beverages.ingredients, beverage.beverage_name)
-        # m.serve_beverage(beverages.ingredients, beverage.beverage_name)
-        p1 = multiprocessing.Process(target=m.serve, args=(beverage.ingredients, beverage.beverage_name))
-        p2 = multiprocessing.Process(target=m.serve, args=(beverage.ingredients, beverage.beverage_name))
-        p3 = multiprocessing.Process(target=m.serve, args=(beverage.ingredients, beverage.beverage_name))
-        # starting process 1
-        p1.start()
-        # starting process 2
-        p2.start()
-        # starting process 3
-        p3.start()
-        # wait until process 1 is finished
-        p1.join()
-        # wait until process 2 is finished
-        p2.join()
-        # wait until process 3 is finished
-        p3.join()
-        # both processes finished
-    print("Done!")
+            # Increase quantity of ingredient
+            obj.update_ingredient(ingredient, 10, True)
+
+            # Decrease quantity of ingredient
+            obj.update_ingredient(ingredient, 10, False)
+
+            # Decrease quantity of ingredient
+            obj.update_ingredient(ingredient, 500, False)
+
+            # Show all ingredients
+            obj.get_ingredients()
+
+    # Creating new coffee machine
+    m = Coffee_Machine(n, items)
+
+    # Coffee Machine test cases
+    for beverage in beverage_list:
+
+        # Serving Coffee
+        m.serve_beverage(beverage.ingredients, beverage.beverage_name)
+
+        # Serving Coffee through outlet
+        m.serve(beverage.ingredients, beverage.beverage_name)
+
+        # Indicate Current ingredient quantity
+        m.indicate()
+
+        # Refill all ingredients
+        m.refill()
+
+        # Refill single ingredient
+        m.refill('ginger_syrup', 100)
+
+
+
+    # Parallelizing is not working
+    # for beverage in beverage_list:
+    #     q = multiprocessing.Queue()
+    #     x = multiprocessing.Value(c_char_p, beverage.beverage_name)
+    #     q.put(beverage.ingredients)
+    #     p1 = multiprocessing.Process(target=m.serve, args=(q, x))
+    #     # p2 = multiprocessing.Process(target=m.serve, args=(q, x))
+    #     # p3 = multiprocessing.Process(target=m.serve, args=(q, x))
+    #     # # starting process 1
+    #     p1.start()
+    #     # # starting process 2
+    #     # p2.start()
+    #     # # starting process 3
+    #     # p3.start()
+    #     # # wait until process 1 is finished
+    #     p1.join()
+    #     # # wait until process 2 is finished
+    #     # p2.join()
+    #     # # wait until process 3 is finished
+    #     # p3.join()
+    #     # # both processes finished
